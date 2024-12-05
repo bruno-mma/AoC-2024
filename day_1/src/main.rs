@@ -12,6 +12,7 @@ fn read_lists_file(file_name: &str) -> (Vec<u32>, Vec<u32>) {
 		.unzip()
 }
 
+#[allow(dead_code)]
 fn test_lists()  -> (Vec<u32>, Vec<u32>) {
 	(vec![3, 4, 2, 1, 3, 3],
 	 vec![4, 3, 5, 3, 9, 3])
