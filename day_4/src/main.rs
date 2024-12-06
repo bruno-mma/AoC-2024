@@ -48,8 +48,27 @@ fn count_xmas(input: &str) -> usize {
 		.map(|re_pattern| Regex::new(re_pattern).unwrap())
 		.collect();
 
+	count_regex_matches_in_input(&input, regexes)
+}
+
+fn count_x_mas(input: &str) -> usize {
+	let line_len = input.chars().position(|c| c == '\n').unwrap();
+
+	let regexes: Vec<Regex> = [
+		format!(r"^M.S(?:.|\n){{{}}}A(?:.|\n){{{}}}M.S", line_len - 1, line_len - 1), // Ms on the left
+		format!(r"^M.M(?:.|\n){{{}}}A(?:.|\n){{{}}}S.S", line_len - 1, line_len - 1), // Ms on the top
+		format!(r"^S.M(?:.|\n){{{}}}A(?:.|\n){{{}}}S.M", line_len - 1, line_len - 1), // Ms on the right
+		format!(r"^S.S(?:.|\n){{{}}}A(?:.|\n){{{}}}M.M", line_len - 1, line_len - 1), // Ms on the bottom
+	].iter()
+		.map(|re_pattern| Regex::new(re_pattern).unwrap())
+		.collect();
+
+	count_regex_matches_in_input(&input, regexes)
+}
+
+fn count_regex_matches_in_input(input: &&str, regexes: Vec<Regex>) -> usize {
 	input.char_indices()
-		.map(|(i,_)| i)
+		.map(|(i, _)| i)
 		.flat_map(|i| regexes.iter()
 			.filter_map(move |re| re.captures(&input[i..]))
 		)
@@ -62,4 +81,5 @@ fn main() {
 	let input = read_input_file("input.txt");
 
 	println!("XMAS count: {}", count_xmas(&input));
+	println!("X MAS count: {}", count_x_mas(&input));
 }
