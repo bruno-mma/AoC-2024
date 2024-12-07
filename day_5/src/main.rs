@@ -64,6 +64,17 @@ fn parse_input(input: &str) -> (Vec<(u32, u32)>, Vec<Vec<u32>>) {
 	(rules, manuals)
 }
 
+fn manual_is_invalid(manual: &Vec<u32>, page_to_pages_after: &HashMap<u32, HashSet<u32>>) -> bool {
+	manual.iter().enumerate().rev()
+		.any(|(i, page)| {
+			if let Some(pages_after) = page_to_pages_after.get(page) {
+				manual[..i].iter().any(|page| pages_after.contains(page))
+			} else {
+				false
+			}
+		})
+}
+
 fn valid_manuals_middle_page_sum(rules: &Vec<(u32, u32)>, manuals: &Vec<Vec<u32>>) -> u32 {
 	let mut page_to_pages_after: HashMap<u32, HashSet<u32>> = HashMap::new();
 
@@ -73,19 +84,21 @@ fn valid_manuals_middle_page_sum(rules: &Vec<(u32, u32)>, manuals: &Vec<Vec<u32>
 
 	manuals.iter()
 		.map(|manual| {
-			let not_valid = manual.iter().enumerate().rev()
-				.any(|(i, page)| {
-					if let Some(pages_after) = page_to_pages_after.get(page) {
-						manual[..i].iter().any(|page| pages_after.contains(page))
-					} else {
-						false
-					}
-				});
-			(manual, !not_valid)
+			(manual, manual_is_invalid(manual, &page_to_pages_after))
 		})
-		.filter(|(_manual, valid)| *valid)
+		.filter(|(_manual, invalid)| !*invalid)
 		.map(|(manual, _valid)| manual.get(manual.len() / 2).unwrap())
 		.sum()
+}
+
+fn cmp_pages_rule_ordering(page_to_pages_after: &HashMap<u32, HashSet<u32>>, a: &u32, b: &u32) -> Ordering {
+	if page_to_pages_after.get(a).is_some_and(|pages_after| pages_after.contains(b)) {
+		Ordering::Less
+	} else if page_to_pages_after.get(b).is_some_and(|pages_after| pages_after.contains(a)) {
+		Ordering::Greater
+	} else {
+		Ordering::Equal
+	}
 }
 
 fn corrected_manuals_middle_page_sum(rules: &Vec<(u32, u32)>, manuals: &Vec<Vec<u32>>) -> u32 {
@@ -97,15 +110,7 @@ fn corrected_manuals_middle_page_sum(rules: &Vec<(u32, u32)>, manuals: &Vec<Vec<
 
 	manuals.iter()
 		.map(|manual| {
-			let not_valid = manual.iter().enumerate().rev()
-				.any(|(i, page)| {
-					if let Some(pages_after) = page_to_pages_after.get(page) {
-						manual[..i].iter().any(|page| pages_after.contains(page))
-					} else {
-						false
-					}
-				});
-			(manual, not_valid)
+			(manual, manual_is_invalid(manual, &page_to_pages_after))
 		})
 		.filter(|(_manual, not_valid)| *not_valid)
 		.map(|(manual, _not_valid)| manual)
@@ -118,16 +123,6 @@ fn corrected_manuals_middle_page_sum(rules: &Vec<(u32, u32)>, manuals: &Vec<Vec<
 		})
 		.map(|manual| *manual.get(manual.len() / 2).unwrap())
 		.sum()
-}
-
-fn cmp_pages_rule_ordering(page_to_pages_after: &HashMap<u32, HashSet<u32>>, a: &u32, b: &u32) -> Ordering {
-	if page_to_pages_after.get(a).is_some_and(|pages_after| pages_after.contains(b)) {
-		Ordering::Less
-	} else if page_to_pages_after.get(b).is_some_and(|pages_after| pages_after.contains(a)) {
-		Ordering::Greater
-	} else {
-		Ordering::Equal
-	}
 }
 
 fn main() {
