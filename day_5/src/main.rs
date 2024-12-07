@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::fs;
+use std::{collections::{HashMap, HashSet}, fs};
 
 fn test_input_1() -> &'static str {
 	concat!(
@@ -42,7 +42,7 @@ fn read_input_file(file_name: &str) -> String {
 fn parse_input(input: &str) -> (Vec<(u32, u32)>, Vec<Vec<u32>>) {
 	let mut rules_pages_split = input.split("\n\n");
 
-	let rules: Vec<(u32, u32)> = rules_pages_split.next().unwrap()
+	let rules = rules_pages_split.next().unwrap()
 		.lines()
 		.map(|rule| {
 			let mut rule_split = rule.split('|');
@@ -63,6 +63,34 @@ fn parse_input(input: &str) -> (Vec<(u32, u32)>, Vec<Vec<u32>>) {
 	(rules, manuals)
 }
 
+fn valid_manuals_middle_page_sum(rules: Vec<(u32, u32)>, manuals: Vec<Vec<u32>>) -> u32 {
+	let mut page_to_pages_after: HashMap<u32, HashSet<u32>> = HashMap::new();
+
+	for (bef, aft) in rules {
+		page_to_pages_after.entry(bef).or_default().insert(aft);
+	}
+
+	manuals.iter()
+		.map(|manual| {
+			let not_valid = manual.iter().enumerate().rev()
+				.any(|(i, page)| {
+					if let Some(pages_after) = page_to_pages_after.get(page) {
+						manual[..i].iter().any(|page| pages_after.contains(page))
+					} else {
+						false
+					}
+				});
+			(manual, !not_valid)
+		})
+		.filter(|(_manual, valid)| *valid)
+		.map(|(manual, _valid)| manual.get(manual.len() / 2).unwrap())
+		.sum()
+}
+
 fn main() {
-	println!("{:?}", parse_input(test_input_1()));
+	// let input = test_input_1();
+	let input = &read_input_file("input.txt");
+
+	let (rules, manuals) = parse_input(input);
+	println!("Sum of middle page of valid manuals: {}", valid_manuals_middle_page_sum(rules, manuals));
 }
