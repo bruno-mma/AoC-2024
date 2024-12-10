@@ -88,21 +88,14 @@ fn count_line_anti_nodes(map_size: (i32, i32), freq_to_antennas: &HashMap<char, 
 		})
 		.flat_map(|(a1, a2)| {
 			let diff = (a2.0 - a1.0, a2.1 - a1.1);
-			let mut anti_nodes = Vec::new();
-
-			let mut pos = a1;
-			while pos_in_bounds(pos, map_size) {
-				anti_nodes.push(pos);
-				pos = (pos.0 + diff.0, pos.1 + diff.1)
-			}
-
-			pos = a2;
-			while pos_in_bounds(pos, map_size) {
-				anti_nodes.push(pos);
-				pos = (pos.0 - diff.0, pos.1 - diff.1)
-			}
-
-			anti_nodes
+			std::iter::successors(Some(a1), move |&(r, c)| {
+				let next = (r + diff.0, c + diff.1);
+				if pos_in_bounds(next, map_size) { Some(next) } else { None }
+			})
+			.chain(std::iter::successors(Some(a2), move |&(r, c)| {
+				let next = (r - diff.0, c - diff.1);
+				if pos_in_bounds(next, map_size) { Some(next) } else { None }
+			}))
 		})
 		.collect::<HashSet<Position>>()
 		.len()
@@ -114,7 +107,6 @@ fn main() {
 	let input = &read_input_file("input.txt");
 	let (map_size, antennas) = parse_input(input);
 
-	// println!("{:?} {:?}", map_size, antennas);
 	println!("Number of anti nodes: {}", count_anti_nodes(map_size, &antennas));
 	println!("Number of line anti nodes: {}", count_line_anti_nodes(map_size, &antennas));
 }
