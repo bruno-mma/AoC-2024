@@ -63,7 +63,7 @@ fn pos_in_bounds(pos: Position, map_size: (i32, i32)) -> bool {
 	pos.0 >= 0 && pos.0 < map_size.0 && pos.1 >= 0 && pos.1 < map_size.1
 }
 
-fn count_anti_nodes(map_size: (i32, i32), freq_to_antennas: HashMap<char, Vec<Position>>) -> usize {
+fn count_anti_nodes(map_size: (i32, i32), freq_to_antennas: &HashMap<char, Vec<Position>>) -> usize {
 	freq_to_antennas.iter()
 		.flat_map(|(_, antennas)| {
 			antennas.iter().enumerate().flat_map(move |(i, &a1)| {
@@ -79,11 +79,42 @@ fn count_anti_nodes(map_size: (i32, i32), freq_to_antennas: HashMap<char, Vec<Po
 		.len()
 }
 
+fn count_line_anti_nodes(map_size: (i32, i32), freq_to_antennas: &HashMap<char, Vec<Position>>) -> usize {
+	freq_to_antennas.iter()
+		.flat_map(|(_, antennas)| {
+			antennas.iter().enumerate().flat_map(move |(i, &a1)| {
+				antennas.iter().skip(i + 1).map(move |&a2| (a1, a2))
+			})
+		})
+		.flat_map(|(a1, a2)| {
+			let diff = (a2.0 - a1.0, a2.1 - a1.1);
+			let mut anti_nodes = Vec::new();
+
+			let mut pos = a1;
+			while pos_in_bounds(pos, map_size) {
+				anti_nodes.push(pos);
+				pos = (pos.0 + diff.0, pos.1 + diff.1)
+			}
+
+			pos = a2;
+			while pos_in_bounds(pos, map_size) {
+				anti_nodes.push(pos);
+				pos = (pos.0 - diff.0, pos.1 - diff.1)
+			}
+
+			anti_nodes
+		})
+		.collect::<HashSet<Position>>()
+		.len()
+}
+
+
 fn main() {
 	// let input = test_input_2();
 	let input = &read_input_file("input.txt");
 	let (map_size, antennas) = parse_input(input);
 
 	// println!("{:?} {:?}", map_size, antennas);
-	println!("Number of anti nodes: {}", count_anti_nodes(map_size, antennas));
+	println!("Number of anti nodes: {}", count_anti_nodes(map_size, &antennas));
+	println!("Number of line anti nodes: {}", count_line_anti_nodes(map_size, &antennas));
 }
