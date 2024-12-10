@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
-use std::collections::{HashMap, HashSet};
+use itertools::Itertools; // Just for unique() ;)
+use std::collections::HashMap;
 use std::fs;
 
 fn test_input_1() -> &'static str {
@@ -75,8 +76,8 @@ fn count_anti_nodes(map_size: (i32, i32), freq_to_antennas: &HashMap<char, Vec<P
 			[(a1.0 - diff.0, a1.1 - diff.1), (a2.0 + diff.0, a2.1 + diff.1)]
 		})
 		.filter(|pos| pos_in_bounds(*pos, map_size))
-		.collect::<HashSet<Position>>()
-		.len()
+		.unique()
+		.count()
 }
 
 fn count_line_anti_nodes(map_size: (i32, i32), freq_to_antennas: &HashMap<char, Vec<Position>>) -> usize {
@@ -97,8 +98,8 @@ fn count_line_anti_nodes(map_size: (i32, i32), freq_to_antennas: &HashMap<char, 
 				if pos_in_bounds(next, map_size) { Some(next) } else { None }
 			}))
 		})
-		.collect::<HashSet<Position>>()
-		.len()
+		.unique()
+		.count()
 }
 
 
