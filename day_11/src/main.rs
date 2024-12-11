@@ -60,9 +60,9 @@ fn get_stone_blink_result(stone: u64) -> (u64, Option<u64>) {
 }
 
 fn blink_times(mut stones: HashMap<u64, u64>, blink_count: u32) -> HashMap<u64, u64> {
-	for _ in 0..blink_count {
-		let mut blink_result = HashMap::new();
+	let mut blink_result = HashMap::new();
 
+	for _ in 0..blink_count {
 		for (stone, stone_count) in stones.iter() {
 			let new_stones = get_stone_blink_result(*stone);
 
@@ -73,6 +73,7 @@ fn blink_times(mut stones: HashMap<u64, u64>, blink_count: u32) -> HashMap<u64, 
 		}
 
 		stones = blink_result.clone();
+		blink_result.clear()
 	}
 
 	stones
