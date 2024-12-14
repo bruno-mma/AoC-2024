@@ -217,9 +217,6 @@ fn get_plot_area_sides(pos: (i32, i32), plant_type: char, map_size: (i32, i32), 
 	visited_pos.insert(pos);
 
 	let num_sides_delta = pos_corner_count(pos, plant_type, map_size, map);
-	// if num_sides_delta > 0 {
-	// 	println!("position {:?} is corner for {} {} times", pos, plant_type, num_sides_delta);
-	// }
 
 	[(0, 1), (1, 0), (0, -1), (-1, 0)].iter()
 		.map(|pos_delta| (pos_delta.0 + pos.0, pos_delta.1 + pos.1))
