@@ -53,6 +53,6 @@ fn main() {
 	// let input = test_input_3();
 	let input = read_input_file("input.txt");
 
-	println!("Sum of multiplications {}", sum_of_multiplications(&input)); // 188_741_603
-	println!("Sum of multiplications only allowed regions {}", sum_of_multiplications_only_allowed_regions(&input)); // 67_269_798
+	println!("Sum of multiplications {}", sum_of_multiplications(&input));
+	println!("Sum of multiplications only allowed regions {}", sum_of_multiplications_only_allowed_regions(&input));
 }

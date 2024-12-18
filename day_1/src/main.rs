@@ -44,6 +44,6 @@ fn similarity_score(first: &Vec<u32>, second: &Vec<u32>) -> u32 {
 
 fn main() {
 	let (first, second) = read_lists_file("input.txt");
-	println!("Total distance: {}", total_distance(&first, &second)); // 1506483
-	println!("Similarity score: {}", similarity_score(&first, &second)) // 23126924
+	println!("Total distance: {}", total_distance(&first, &second));
+	println!("Similarity score: {}", similarity_score(&first, &second))
 }

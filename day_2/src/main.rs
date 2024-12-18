@@ -70,6 +70,6 @@ fn count_safe_reports_tolerant(reports: Vec<Vec<i32>>) -> usize {
 fn main() {
 	// let reports = get_test_reports();
 	let reports = read_reports_from_file("input.txt");
-	println!("Safe reports count: {}", count_safe_reports(reports.clone())); // 402
-	println!("Safe reports count tolerant: {}", count_safe_reports_tolerant(reports)); // 455
+	println!("Safe reports count: {}", count_safe_reports(reports.clone()));
+	println!("Safe reports count tolerant: {}", count_safe_reports_tolerant(reports));
 }
