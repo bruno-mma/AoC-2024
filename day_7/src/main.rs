@@ -30,31 +30,68 @@ fn parse_input(input: &str) -> Vec<(u64, Vec<u64>)> {
 	}).collect()
 }
 
-fn test_equation(result: u64, operands: &[u64], current_value: u64) -> u64 {
+fn get_equation_result_if_correct(result: u64, operands: &[u64], current_value: u64) -> u64 {
 	if current_value > result {
 		return 0
 	}
 
 	if let Some((next_operand, other_operands)) = operands.split_last() {
-		let result_mul = test_equation(result, other_operands, current_value * next_operand);
+		let result_mul = get_equation_result_if_correct(result, other_operands, current_value * next_operand);
 		if result_mul > 0 {
 			result_mul
 		} else {
-			test_equation(result, other_operands, current_value + next_operand)
+			get_equation_result_if_correct(result, other_operands, current_value + next_operand)
 		}
 	} else if current_value == result { result } else { 0 }
 }
 
 fn sum_of_correct_equations(equations: &[(u64, Vec<u64>)]) -> u64 {
 	equations.iter()
-		.map(|(result, operands)| test_equation(*result, operands, 0))
+		.map(|(result, operands)| get_equation_result_if_correct(*result, operands, 0))
+		.sum()
+}
+
+fn u64_concatenation(a: u64, b: u64) -> u64 {
+	let mut b_copy = b;
+	let mut a_copy = a;
+	while b_copy > 0 {
+		a_copy *= 10;
+		b_copy /= 10;
+	}
+	a_copy + b
+}
+
+fn get_equation_result_if_correct_concatenation(result: u64, operands: &[u64], current_value: u64) -> u64 {
+	if current_value > result {
+		return 0
+	}
+
+	if let Some((next_operand, other_operands)) = operands.split_last() {
+		let result_mul = get_equation_result_if_correct_concatenation(result, other_operands, current_value * next_operand);
+		if result_mul > 0 {
+			return result_mul
+		}
+
+		let result_concat = get_equation_result_if_correct_concatenation(result, other_operands, u64_concatenation(current_value, *next_operand));
+		if result_concat > 0 {
+			return result_concat
+		}
+
+		get_equation_result_if_correct_concatenation(result, other_operands, current_value + next_operand)
+	} else if current_value == result { result } else { 0 }
+}
+
+fn sum_of_correct_equations_concatenation_allowed(equations: &[(u64, Vec<u64>)]) -> u64 {
+	equations.iter()
+		.map(|(result, operands)| get_equation_result_if_correct_concatenation(*result, operands, 0))
 		.sum()
 }
 
 fn main() {
 	// let input = test_input_1();
 	let input = &read_input_file("input.txt");
-	
+
 	let equations = parse_input(input);
 	println!("Sum of correct equations: {}", sum_of_correct_equations(&equations));
+	println!("Sum of correct equations (concatenation allowed): {}", sum_of_correct_equations_concatenation_allowed(&equations));
 }
