@@ -45,12 +45,6 @@ fn get_equation_result_if_correct(result: u64, operands: &[u64], current_value: 
 	} else if current_value == result { result } else { 0 }
 }
 
-fn sum_of_correct_equations(equations: &[(u64, Vec<u64>)]) -> u64 {
-	equations.iter()
-		.map(|(result, operands)| get_equation_result_if_correct(*result, operands, 0))
-		.sum()
-}
-
 fn u64_concatenation(a: u64, b: u64) -> u64 {
 	let mut b_copy = b;
 	let mut a_copy = a;
@@ -61,29 +55,32 @@ fn u64_concatenation(a: u64, b: u64) -> u64 {
 	a_copy + b
 }
 
-fn get_equation_result_if_correct_concatenation(result: u64, operands: &[u64], current_value: u64) -> u64 {
+fn get_equation_result_if_correct_concatenation_allowed(result: u64, operands: &[u64], current_value: u64) -> u64 {
 	if current_value > result {
 		return 0
 	}
 
 	if let Some((next_operand, other_operands)) = operands.split_last() {
-		let result_mul = get_equation_result_if_correct_concatenation(result, other_operands, current_value * next_operand);
+		let result_mul = get_equation_result_if_correct_concatenation_allowed(result, other_operands, current_value * next_operand);
 		if result_mul > 0 {
 			return result_mul
 		}
 
-		let result_concat = get_equation_result_if_correct_concatenation(result, other_operands, u64_concatenation(current_value, *next_operand));
+		let result_concat = get_equation_result_if_correct_concatenation_allowed(result, other_operands, u64_concatenation(current_value, *next_operand));
 		if result_concat > 0 {
 			return result_concat
 		}
 
-		get_equation_result_if_correct_concatenation(result, other_operands, current_value + next_operand)
+		get_equation_result_if_correct_concatenation_allowed(result, other_operands, current_value + next_operand)
 	} else if current_value == result { result } else { 0 }
 }
 
-fn sum_of_correct_equations_concatenation_allowed(equations: &[(u64, Vec<u64>)]) -> u64 {
+fn sum_of_correct_equations<F>(equations: &[(u64, Vec<u64>)], get_result_fn: F) -> u64
+where
+	F: Fn(u64, &[u64], u64) -> u64,
+{
 	equations.iter()
-		.map(|(result, operands)| get_equation_result_if_correct_concatenation(*result, operands, 0))
+		.map(|(result, operands)| get_result_fn(*result, operands, 0))
 		.sum()
 }
 
@@ -92,6 +89,6 @@ fn main() {
 	let input = &read_input_file("input.txt");
 
 	let equations = parse_input(input);
-	println!("Sum of correct equations: {}", sum_of_correct_equations(&equations));
-	println!("Sum of correct equations (concatenation allowed): {}", sum_of_correct_equations_concatenation_allowed(&equations));
+	println!("Sum of correct equations: {}", sum_of_correct_equations(&equations, get_equation_result_if_correct));
+	println!("Sum of correct equations (concatenation allowed): {}", sum_of_correct_equations(&equations, get_equation_result_if_correct_concatenation_allowed));
 }
