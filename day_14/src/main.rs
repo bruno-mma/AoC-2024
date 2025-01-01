@@ -28,11 +28,11 @@ type Robot = ((i32, i32), (i32, i32));
 fn parse_input(input: &str) -> Vec<Robot> {
 	input.lines()
 		.map(|line| {
-			let mut parts = line.split(' ');
-			let mut pos_parts = parts.next().unwrap().split('=').nth(1).unwrap().split(',');
-			let mut vel_parts = parts.next().unwrap().split('=').nth(1).unwrap().split(',');
-			let pos = (pos_parts.next().unwrap().parse().unwrap(), pos_parts.next().unwrap().parse().unwrap());
-			let vel = (vel_parts.next().unwrap().parse().unwrap(), vel_parts.next().unwrap().parse().unwrap());
+			let (pos_part, vel_part) = line.split_once(' ').unwrap();
+			let pos = pos_part.split_once('=').unwrap().1.split_once(',').unwrap();
+			let vel = vel_part.split_once('=').unwrap().1.split_once(',').unwrap();
+			let pos = (pos.0.parse().unwrap(), pos.1.parse().unwrap());
+			let vel = (vel.0.parse().unwrap(), vel.1.parse().unwrap());
 			(pos, vel)
 		})
 		.collect()
@@ -58,40 +58,29 @@ fn next_robot_state(robot: Robot, map_size: (i32, i32)) -> Robot {
 
 fn wait_seconds(robots: Vec<Robot>, seconds: u32, map_size: (i32, i32)) -> Vec<Robot> {
 	robots.into_iter()
-		.map(|mut robot| {
-			for _ in 0..seconds {robot = next_robot_state(robot, map_size) }
-			robot
-		})
+		.map(|robot|
+			(0..seconds).fold(robot, |robot, _| next_robot_state(robot, map_size))
+		)
 		.collect()
 }
 
 fn compute_safety_factor(robots: Vec<Robot>, map_size: (i32, i32)) -> i32 {
-	let m_column = map_size.0 / 2;
-	let m_row = map_size.1 / 2;
+	let (m_column, m_row) = (map_size.0 / 2, map_size.1 / 2);
 	let mut quadrant_count = [0; 4];
 
-	for robot in robots {
-		let (p, _) = robot;
-
-		if p.0 < m_column {
-			if p.1 < m_row {
-				quadrant_count[0] += 1;
-			} else if p.1 > m_row {
-				quadrant_count[1] += 1;
-			}
-		} else if p.0 > m_column {
-			if p.1 < m_row {
-				quadrant_count[2] += 1;
-			} else if p.1 > m_row {
-				quadrant_count[3] += 1;
-			}
+	for (p, _) in robots {
+		if p.0 == m_column || p.1 == m_row {
+			continue;
+		}
+		match (p.0 < m_column, p.1 < m_row) {
+			(true, true) => quadrant_count[0] += 1,
+			(true, false) => quadrant_count[1] += 1,
+			(false, true) => quadrant_count[2] += 1,
+			(false, false) => quadrant_count[3] += 1,
 		}
 	}
 
-	quadrant_count.into_iter().reduce(|acc, e|{
-		if e == 0 {acc}
-		else {acc * e}
-	}).unwrap()
+	quadrant_count.iter().filter(|&&e| e != 0).product()
 }
 
 fn main() {
