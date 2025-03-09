@@ -83,6 +83,16 @@ fn compute_safety_factor(robots: Vec<Robot>, map_size: (i32, i32)) -> i32 {
 	quadrant_count.iter().filter(|&&e| e != 0).product()
 }
 
+fn print_map(robots: Vec<Robot>, map_size: (i32, i32)) {
+	let mut map = vec![vec!['.'; map_size.0 as usize]; map_size.1 as usize];
+	for (p, _) in robots {
+		map[p.1 as usize][p.0 as usize] = '#';
+	}
+	for row in map {
+		println!("{}", row.into_iter().collect::<String>());
+	}
+}
+
 fn main() {
 	// let input = test_input_1();
 	// let map_size = (11, 7);
@@ -90,7 +100,22 @@ fn main() {
 	let input = &read_input_file("input.txt");
 	let map_size = (101, 103);
 
-	let robots = parse_input(input);
-	let robots = wait_seconds(robots, 100, map_size);
-	println!("Safety score: {}", compute_safety_factor(robots, map_size))
+	let mut robots = parse_input(input);
+	for i in 1..10_000_000 {
+		robots = wait_seconds(robots.clone(), 1, map_size);
+		let mut column_count = vec![0; map_size.0 as usize];
+		for (p, _) in robots.clone() {
+			column_count[p.0 as usize] += 1;
+		}
+		let mut row_count = vec![0; map_size.1 as usize];
+		for (p, _) in robots.clone() {
+			row_count[p.1 as usize] += 1;
+		}
+
+		if column_count.into_iter().max().unwrap() >= 31 && row_count.into_iter().max().unwrap() >= 30 {
+			println!("{}", i);
+			print_map(robots.clone(), map_size);
+			println!("\n")
+		}
+	}
 }
