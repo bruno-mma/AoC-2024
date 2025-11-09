@@ -158,7 +158,7 @@ fn get_pos_symbol(map: &Map, pos: &Pos) -> char {
 		pos.0 >= 0 && pos.0 < map.num_rows && pos.1 >= 0 && pos.1 < map.num_columns,
 		"Invalid map position"
 	);
-	map.positions[(pos.0 * map.num_columns + pos.1) as usize]
+	map.positions[coord_to_array_idx(pos, map.num_columns)]
 }
 
 fn parse_input(input: &str) -> Map {
