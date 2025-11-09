@@ -3,14 +3,14 @@
 use std::cmp::{Ordering, Reverse};
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::fs;
-use std::ops::{Add, AddAssign, Sub};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 fn test_input_1() -> &'static str {
 	concat!(
-	"#####\n",
-	"#...#\n",
-	"#S#E#\n",
-	"#####\n"
+		"#####\n",
+		"#...#\n",
+		"#S#E#\n",
+		"#####\n"
 	)
 }
 
@@ -56,6 +56,16 @@ fn test_input_3() -> &'static str {
 	)
 }
 
+fn test_input_4() -> &'static str {
+	concat!(
+		"######\n",
+		"#...##\n",
+		"#S#.E#\n",
+		"#...##\n",
+		"######\n"
+	)
+}
+
 fn read_input_file(file_name: &str) -> String {
 	fs::read_to_string(file_name).unwrap()
 }
@@ -86,13 +96,22 @@ impl AddAssign for Pos {
 	}
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+impl SubAssign for Pos {
+	fn sub_assign(&mut self, rhs: Self) {
+		self.0 -= rhs.0;
+		self.1 -= rhs.1;
+	}
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 enum Dir {
 	North,
 	East,
 	South,
 	West
 }
+
+const DIRS: [Dir; 4] = [Dir::North, Dir::East, Dir::South, Dir::West];
 
 struct Map {
 	num_rows: i32,
@@ -103,8 +122,6 @@ struct Map {
 }
 
 struct Graph {
-	num_rows: i32,
-	num_columns: i32,
 	start: Pos,
 	end: Pos,
 	neighbours: HashMap<Pos, HashSet<Pos>>
@@ -188,6 +205,7 @@ fn is_pos_node(map: &Map, pos: Pos) -> bool {
 		return true
 	}
 
+	// if there are exactly two walkable directions, make sure they are not opposite (e.g. a straight corridor)
 	!are_opposite(&walkable_dirs[0], &walkable_dirs[1])
 }
 
@@ -201,7 +219,7 @@ fn get_graph_from(map: &Map) -> Graph {
 			continue;
 		}
 
-		for dir in [Dir::North, Dir::East, Dir::South, Dir::West] {
+		for dir in DIRS {
 			let facing_pos_delta = get_pos_delta_from_dir(&dir);
 			let mut path_pos = curr_pos;
 
@@ -221,15 +239,13 @@ fn get_graph_from(map: &Map) -> Graph {
 	}
 
 	Graph {
-		num_rows: map.num_rows,
-		num_columns: map.num_columns,
 		start: map.start,
 		end: map.end,
 		neighbours,
 	}
 }
 
-fn get_cost_and_new_facing_to(from: &Pos, facing: &Dir, to: &Pos) -> (i32, Dir) {
+fn get_cost_and_new_facing_to(from: &Pos, facing: &Dir, to: &Pos) -> Option<(i32, Dir)> {
 	assert_ne!(from, to, "Cannot get cost to same position");
 
 	let pos_delta = *to - *from;
@@ -245,24 +261,23 @@ fn get_cost_and_new_facing_to(from: &Pos, facing: &Dir, to: &Pos) -> (i32, Dir) 
 		Dir::West
 	};
 
-	let mut cost = pos_delta.0.abs() + pos_delta.1.abs();
-	if *facing != required_facing {
-		if are_opposite(facing, &required_facing) {
-			// Going backwards does not make sense, let's give it a big cost to discourage it
-			cost += 1000000
-		} else {
-			cost += 1000
-		}
+	if are_opposite(facing, &required_facing) {
+		return None // don't bother with U-turns
 	}
 
-	(cost, required_facing)
+	let mut cost = pos_delta.0.abs() + pos_delta.1.abs();
+	if *facing != required_facing {
+		cost += 1000;
+	}
+
+	Some((cost, required_facing))
 }
 
 #[derive(Eq, PartialEq, Hash, Copy, Clone)]
 struct State {
 	pos: Pos,
 	facing: Dir,
-	cost: i32
+	cost: i32,
 }
 
 impl PartialOrd<Self> for State {
@@ -277,7 +292,7 @@ impl Ord for State {
 	}
 }
 
-fn get_best_path_cost(graph: Graph) -> Option<i32> {
+fn get_best_paths(graph: Graph) -> Option<(i32, HashSet<Vec<Pos>>)> {
 	let mut heap: BinaryHeap<Reverse<State>> = BinaryHeap::new();
 	heap.push(Reverse(State{
 		pos: graph.start,
@@ -285,30 +300,150 @@ fn get_best_path_cost(graph: Graph) -> Option<i32> {
 		cost: 0
 	}));
 
-	let mut visited: HashSet<State> = HashSet::new();
+	let mut cost_to: HashMap<(Pos, Dir), i32> = HashMap::new();
+	cost_to.insert((graph.start, Dir::East), 0);
+
+	// for each (pos, facing), store the list of pos/facings that can lead to it with the best cost
+	let mut predecessors: HashMap<(Pos, Dir), Vec<(Pos, Dir)>> = HashMap::new();
 
 	while let Some(Reverse(state)) = heap.pop() {
-		let neighbours = graph.neighbours.get(&state.pos).expect("Node not found in graph");
-
-		for neighbour in neighbours {
-			let (cost, facing) = get_cost_and_new_facing_to(&state.pos, &state.facing, neighbour);
-			let state = State {
-				pos: *neighbour,
-				facing,
-				cost: state.cost + cost,
-			};
-
-			if state.pos == graph.end {
-				return Some(state.cost)
+		// if we found a better way to get here
+		#[allow(clippy::collapsible_if)]
+		if let Some(saved_cost_to_here) = cost_to.get(&(state.pos, state.facing)) {
+			if saved_cost_to_here < &state.cost {
+				continue;
 			}
+		}
 
-			if visited.insert(state) {
-				heap.push(Reverse(state))
+		let neighbours = graph.neighbours.get(&state.pos).expect("Node not found in graph");
+		for neighbour in neighbours {
+			let Some((cost, new_facing)) = get_cost_and_new_facing_to(&state.pos, &state.facing, neighbour) else { continue };
+			let total_cost_to_neighbour = cost + state.cost;
+
+			// check if this is better than what we have saved
+			let pos_facing = (*neighbour, new_facing);
+			match cost_to.get(&pos_facing) {
+				None => {
+					// no saved cost for this pos + facing
+					cost_to.insert(pos_facing, total_cost_to_neighbour);
+					predecessors.insert(pos_facing, vec![(state.pos, state.facing)]);
+					heap.push(Reverse(State{
+						pos: *neighbour,
+						facing: new_facing,
+						cost: total_cost_to_neighbour
+					}))
+				}
+				Some(&saved_cost) if total_cost_to_neighbour < saved_cost => {
+					// we have a saved cost, but found a better way there
+					cost_to.insert(pos_facing, total_cost_to_neighbour);
+					predecessors.insert(pos_facing, vec![(state.pos, state.facing)]);
+					heap.push(Reverse(State{
+						pos: *neighbour,
+						facing: new_facing,
+						cost: total_cost_to_neighbour
+					}))
+				}
+				Some(&existing) if total_cost_to_neighbour == existing => {
+					// we found a way that has the same cost
+					predecessors.entry(pos_facing).or_default().push((state.pos, state.facing));
+				}
+				_ => {
+					// we found a way that has larger cost, ignore it
+				}
 			}
 		}
 	}
 
-	None
+	let best_cost = DIRS.iter()
+		.filter_map(|dir| cost_to.get(&(graph.end, *dir)))
+		.min()
+		.copied();
+
+	if let Some(best_cost) = best_cost {
+		let mut paths = HashSet::new();
+		for dir in DIRS {
+			// only compute paths with best cost
+			let end_pos_dir = (graph.end, dir);
+			if let Some(cost) = cost_to.get(&end_pos_dir) && *cost == best_cost {
+				compute_paths(&predecessors, &end_pos_dir, &graph.start, &vec![graph.end], &mut paths);
+			}
+		}
+		Some((best_cost, paths))
+	} else {
+		None
+	}
+}
+
+fn compute_paths(
+	predecessors: &HashMap<(Pos, Dir), Vec<(Pos, Dir)>>,
+	curr_pos_dir: &(Pos, Dir),
+	goal: &Pos,
+	curr_path: &Vec<Pos>,
+	paths: &mut HashSet<Vec<Pos>>
+) {
+	if curr_pos_dir.0 == *goal {
+		// we reached the end
+		let path = curr_path.clone();
+		paths.insert(path);
+		return;
+	}
+
+	let pos_predecessors = predecessors.get(curr_pos_dir).unwrap_or_else(|| panic!("Could not find a way to {:?}", curr_pos_dir));
+	if pos_predecessors.is_empty() {
+		// reached a dead end
+		return;
+	}
+
+	for predecessor in pos_predecessors {
+		let mut path_fork = curr_path.clone();
+		path_fork.push(predecessor.0);
+		compute_paths(predecessors, predecessor, goal, &path_fork, paths);
+	}
+}
+
+fn get_pos_between(a: Pos, b: Pos) -> Vec<Pos>{
+	assert_ne!(a, b, "Positions must be different");
+	let delta = b - a;
+	assert!(delta.0 == 0 || delta.1 == 0, "Positions must be aligned either horizontally or vertically");
+
+	let axis_delta = if delta.0 != 0 {
+		Pos(delta.0 / delta.0.abs(), 0)
+	} else {
+		Pos(0, delta.1 / delta.1.abs())
+	};
+
+	let mut curr_pos = a;
+	let mut positions = vec![a];
+	while curr_pos != b {
+		curr_pos += axis_delta;
+		positions.push(curr_pos);
+	}
+
+	positions
+}
+
+fn get_all_pos_in_path(mut path: Vec<Pos>) -> HashSet<Pos> {
+	assert!(path.len() >= 2, "Path must have at least 2 positions");
+
+	let mut positions = HashSet::new();
+	let mut curr_pos = path.pop().unwrap();
+
+	while let Some(next_pos) = path.pop() {
+		get_pos_between(curr_pos, next_pos).iter()
+			.for_each(|pos| {
+				positions.insert(*pos);
+			});
+
+		curr_pos = next_pos;
+	}
+
+	positions
+}
+
+fn get_all_pos_in_paths(paths: &HashSet<Vec<Pos>>) -> HashSet<Pos> {
+	paths.iter()
+		.flat_map(|path| get_all_pos_in_path(path.clone()).into_iter())
+		.collect()
 }
 
 fn print_graph_node_neighbours(map: &Map, neighbours: &HashMap<Pos, HashSet<Pos>>) {
@@ -344,6 +479,7 @@ fn main() {
 	// let input = test_input_1();
 	// let input = test_input_2();
 	// let input = test_input_3();
+	// let input = test_input_4();
 	let input = &read_input_file("input.txt");
 
 	println!("Parsing input...");
@@ -354,9 +490,10 @@ fn main() {
 	// print_all_graph_nodes(&map, &graph.neighbours);
 	// print_graph_node_neighbours(&map, &graph.neighbours);
 
-	println!("Computing best path...");
-	if let Some(cost) = get_best_path_cost(graph) {
+	println!("Computing best paths...");
+	if let Some((cost, paths)) = get_best_paths(graph) {
 		println!("Best cost {}", cost);
+		println!("Best paths position count: {:?}", get_all_pos_in_paths(&paths).len());
 	} else {
 		println!("No path found");
 	}
