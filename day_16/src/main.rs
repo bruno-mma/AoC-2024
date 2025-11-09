@@ -389,10 +389,7 @@ fn compute_paths(
 	}
 
 	let pos_predecessors = predecessors.get(curr_pos_dir).unwrap_or_else(|| panic!("Could not find a way to {:?}", curr_pos_dir));
-	if pos_predecessors.is_empty() {
-		// reached a dead end
-		return;
-	}
+	assert!(!pos_predecessors.is_empty(), "Predecessors should not be empty for {:?}", curr_pos_dir);
 
 	for predecessor in pos_predecessors {
 		let mut path_fork = curr_path.clone();
