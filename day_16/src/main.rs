@@ -419,14 +419,15 @@ fn get_pos_between(a: Pos, b: Pos) -> Vec<Pos>{
 	positions
 }
 
-fn get_all_pos_in_path(mut path: Vec<Pos>) -> HashSet<Pos> {
+fn get_all_pos_in_path(path: &[Pos]) -> HashSet<Pos> {
 	assert!(path.len() >= 2, "Path must have at least 2 positions");
+	let mut path_iter = path.iter();
 
 	let mut positions = HashSet::new();
-	let mut curr_pos = path.pop().unwrap();
+	let mut curr_pos = path_iter.next().unwrap();
 
-	while let Some(next_pos) = path.pop() {
-		get_pos_between(curr_pos, next_pos).iter()
+	for next_pos in path_iter {
+		get_pos_between(*curr_pos, *next_pos).iter()
 			.for_each(|pos| {
 				positions.insert(*pos);
 			});
@@ -439,7 +440,7 @@ fn get_all_pos_in_path(mut path: Vec<Pos>) -> HashSet<Pos> {
 
 fn get_all_pos_in_paths(paths: &HashSet<Vec<Pos>>) -> HashSet<Pos> {
 	paths.iter()
-		.flat_map(|path| get_all_pos_in_path(path.clone()).into_iter())
+		.flat_map(|path| get_all_pos_in_path(path).into_iter())
 		.collect()
 }
 
