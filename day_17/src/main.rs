@@ -17,11 +17,11 @@ fn read_input_file(file_name: &str) -> String {
 	fs::read_to_string(file_name).unwrap()
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Computer {
-	reg_a: u32,
-	reg_b: u32,
-	reg_c: u32,
+	reg_a: u128,
+	reg_b: u128,
+	reg_c: u128,
 	instructions: Vec<u8>,
 	inst_pointer: u32,
 	output: Vec<u8>,
@@ -31,13 +31,13 @@ impl Computer {
 	fn get_instruction(&self, offset: u32) -> Result<u8, &'static str> {
 		self.instructions
 			.get((self.inst_pointer + offset) as usize)
-			.ok_or("instruction pointer out of bounds")
+			.ok_or("Instruction pointer out of bounds")
 			.copied()
 	}
 
-	fn get_combo_operand_value(&self, operand: u8) -> u32 {
+	fn get_combo_operand_value(&self, operand: u8) -> u128 {
 		if operand <= 3 {
-			operand as u32
+			operand as u128
 		} else if operand == 4 {
 			self.reg_a
 		} else if operand == 5 {
@@ -54,14 +54,14 @@ impl Computer {
 			self.get_instruction(1)?
 		);
 
-		self.reg_a = self.reg_a / 2_u32.pow(combo_operand);
+		self.reg_a = self.reg_a >> combo_operand;
 
 		self.inst_pointer += 2;
 		Ok(())
 	}
 
 	fn run_bxl_instruction(&mut self) -> Result<(), &'static str> {
-		self.reg_b = self.reg_b ^ self.get_instruction(1)? as u32;
+		self.reg_b = self.reg_b ^ (self.get_instruction(1)? as u128);
 
 		self.inst_pointer += 2;
 		Ok(())
@@ -114,7 +114,7 @@ impl Computer {
 			self.get_instruction(1)?
 		);
 
-		self.reg_b = self.reg_a / 2_u32.pow(combo_operand);
+		self.reg_b = self.reg_a >> combo_operand;
 
 		self.inst_pointer += 2;
 		Ok(())
@@ -125,7 +125,7 @@ impl Computer {
 			self.get_instruction(1)?
 		);
 
-		self.reg_c = self.reg_a / 2_u32.pow(combo_operand);
+		self.reg_c = self.reg_a >> combo_operand;
 
 		self.inst_pointer += 2;
 		Ok(())
